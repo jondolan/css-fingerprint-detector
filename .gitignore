@@ -1,0 +1,49 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Virtual environment folders
+.venv/
+venv/
+env/
+ENV/
+
+# Python pip environment settings
+pip-selfcheck.json
+
+# Selenium drivers (if manually downloaded)
+chromedriver
+chromedriver.exe
+geckodriver
+geckodriver.exe
+
+# Local runtime and debug files
+*.log
+*.tmp
+*.bak
+
+# Pytest cache
+.pytest_cache/
+.cache/
+
+# VSCode and IDE config
+.vscode/
+.idea/
+
+# macOS system files
+.DS_Store
+
+# Test artifacts (optional if you want to save logs separately)
+test_output/
+coverage/
+
+# Ignore any secret config if created later
+*.env
+*.secret
+
+# Optional: Jupyter notebook checkpoints
+.ipynb_checkpoints/

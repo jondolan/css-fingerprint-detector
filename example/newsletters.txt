@@ -1,0 +1,3 @@
+newsletters/nextdraft.html
+newsletters/tldr.html
+newsletters/substack.html

@@ -1,0 +1,10 @@
+https://google.com
+https://facebook.com
+https://microsoft.com
+https://apple.com
+https://youtube.com
+https://twitter.com
+https://instagram.com
+https://netflix.com
+https://amazon.com
+https://wikipedia.org
