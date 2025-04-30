@@ -20,7 +20,7 @@ The tool supports both web URLs (http://, https://) and local HTML files (list o
 
 A comprehensive test suite has been built to validate each detector can successfully detect the examples discussed in the original paper.
 
-```python
+```bash
 python3 -m pytest
 ```
 
@@ -28,9 +28,10 @@ python3 -m pytest
 
 The tool includes basic tools for analyzing the results.
 
-```python
+```bash
 python3 results/analyze_calc.py results_top5/results_top5.json
 python3 results/analyze_dynamic.py results_top5/results_top5.json
+python3 results/analyze_at_rules.py results_top5/results_top5.json
 ```
 
 ## Discussion
