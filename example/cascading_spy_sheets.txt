@@ -1,0 +1,3 @@
+example/poc_chrome.html
+example/poc_firefox.html
+example/officedetect.html
