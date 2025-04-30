@@ -78,6 +78,7 @@ def analyze_at_rules(results_file):
     print("\nTotal at-rules across all sites:", total_all_rules)
 
 if __name__ == "__main__":
-    # Default to results_top5.json if no argument is provided
-    results_file = sys.argv[1] if len(sys.argv) > 1 else 'results_top5/results_top5.json'
-    analyze_at_rules(results_file)
+    if len(sys.argv) != 2:
+        print("Usage: python3 analyze_at_rules.py <results_file>")
+        sys.exit(1)
+    analyze_at_rules(sys.argv[1])
