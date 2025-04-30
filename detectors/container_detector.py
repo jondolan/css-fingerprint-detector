@@ -1,103 +1,120 @@
 import tinycss2
 import re
 
-def _find_container_styles(rules):
-    # find all container style rules and their properties
-    container_styles = {}
-    container_props = {}
-    
-    for rule in rules:
-        if rule.type == 'qualified-rule':
-            selector = tinycss2.serialize(rule.prelude).strip()
-            declarations = tinycss2.parse_declaration_list(rule.content)
-            props = {}
+def _extract_container_name(query):
+    """Extract container name from a container query."""
+    # First try to find a name before the width condition
+    if '(' in query:
+        name = query[:query.index('(')].strip()
+        if name:
+            return name
             
-            for decl in declarations:
-                if decl.type == 'declaration':
-                    value = tinycss2.serialize(decl.value).strip()
-                    if decl.lower_name == 'container-type':
-                        container_styles[selector] = value
-                        props['container-type'] = value
-                    elif decl.lower_name == 'width':
-                        props['width'] = value
-            
-            if 'container-type' in props:
-                container_props[selector] = props
-                
-    return container_styles, container_props
-
-def _get_base_selector(selector):
-    # get the base part of a selector (e.g., '#container' from '#container div')
-    parts = selector.split(' ')
-    return parts[0] if parts else selector
-
-def _is_fingerprinting_pattern(container_rule, container_style, container_props):
-    # analyze if a container query is being used for fingerprinting
-    techniques = []
+    # If no explicit name found, look for container name in the query
+    match = re.search(r'(\w+container)\s*[(/]', query)
+    if match:
+        return match.group(1)
     
-    # get the container query condition
-    query = tinycss2.serialize(container_rule.prelude).strip() if container_rule.prelude else ''
+    # Look for container name with format: container_name / inline-size
+    match = re.search(r'(\w+)\s*/\s*inline-size', query)
+    if match:
+        return match.group(1)
     
-    # get the container style (from container-type and other properties)
-    container_type = container_props.get('container-type', '').strip('"\'').lower()
-    width = container_props.get('width', '').lower()
-    
-    # check for font-relative units in container properties or query
-    font_units = ['ch', 'ex', 'cap', 'ic']
-    has_font_units = any(unit in width for unit in font_units) or any(unit in query for unit in font_units)
-    if has_font_units:
-        techniques.append("font-fingerprinting")
+    # Look for container name in CSS declarations
+    match = re.search(r'container\s*:\s*(\w+)', query)
+    if match:
+        return match.group(1)
         
-    # check for viewport-relative units in container properties or query
-    viewport_units = ['vw', 'vh', 'vmin', 'vmax']
-    has_viewport_units = any(unit in width for unit in viewport_units) or any(unit in query for unit in viewport_units)
-    if has_viewport_units:
-        techniques.append("viewport-fingerprinting")
-        
-    # check for element dimension measurements with precise values
-    dimension_keywords = ['width', 'height', 'max-width', 'min-width', 'max-height', 'min-height']
-    if any(x in query.lower() for x in dimension_keywords):
-        # look for precise measurements that might target specific browsers/OS
-        numbers = re.findall(r'[-+]?\d*\.?\d+', query)
-        for num in numbers:
-            if '.' in num or float(num) < 10:
-                # Add dimension fingerprinting if we have font units (dual technique)
-                # or if we're not using any other unit types
-                if has_font_units or (not has_viewport_units and not has_font_units):
-                    techniques.append("dimension-fingerprinting")
-                break
-    
-    # check for text measurement via inline-size
-    if container_type == 'inline-size' and not any(techniques):
-        techniques.append("text-measurement")
-                
-    return techniques
-
-def _find_matching_container(container_styles, container_props):
-    # find the first container style and its properties
-    # for container queries, we just need the first container we find
-    # since the query applies to any container with the specified type
-    if container_styles:
-        selector = next(iter(container_styles))
-        return container_styles[selector], container_props.get(selector, {})
-    return None, {}
+    return 'default'
 
 def detector(css_text):
     results = []
     rules = tinycss2.parse_stylesheet(css_text, skip_comments=True, skip_whitespace=True)
     
-    # find all container styles first
-    container_styles, container_props = _find_container_styles(rules)
+    # Parse container declarations and queries directly from CSS text
+    container_declarations = {}
+    container_queries = {}
     
-    # get the container style and props (we only need one container for the query)
-    style, props = _find_matching_container(container_styles, container_props)
+    # Find container declarations
+    container_decl_pattern = re.compile(r'container\s*:\s*(\w+)\s*/\s*inline-size', re.IGNORECASE)
+    for match in container_decl_pattern.finditer(css_text):
+        container_name = match.group(1)
+        container_declarations[container_name] = True
     
-    # analyze container queries
+    # Find container queries
+    container_query_pattern = re.compile(r'@container\s+(\w+)?\s*\(\s*(?:width|max-width|min-width)\s*(?::|\s*[><]=?|\s*=)\s*([-+]?\d*\.?\d+)(?:px|em|rem|ch|vw|vh|%)?\s*\)', re.IGNORECASE)
+    for match in container_query_pattern.finditer(css_text):
+        query_container_name = match.group(1) if match.group(1) else 'default'
+        width_value = float(match.group(2))
+        query = match.group(0)[10:].strip()  # Remove '@container ' prefix
+        
+        # Check if this query matches a declared container
+        for declared_name in container_declarations:
+            if declared_name in query or query_container_name == declared_name:
+                query_container_name = declared_name
+                break
+        
+        if query_container_name not in container_queries:
+            container_queries[query_container_name] = {'dimensions': [], 'queries': []}
+        
+        container_queries[query_container_name]['dimensions'].append(width_value)
+        container_queries[query_container_name]['queries'].append(query)
+    
+    # Second pass - check for matching dimensions that could indicate fingerprinting
+    seen_queries = set()
+    
+    # First, process containers with multiple queries
+    for container_name, container_info in container_queries.items():
+        dimensions = container_info['dimensions']
+        queries = container_info['queries']
+        
+        # If this container has multiple queries with different dimensions, mark all queries as suspicious
+        if len(dimensions) > 1 and len(set(dimensions)) > 1:
+            for q in queries:
+                query_key = f"{q}|dimension-fingerprinting"
+                if query_key not in seen_queries:
+                    results.append(f"@container {q} [dimension-fingerprinting]")
+                    seen_queries.add(query_key)
+    
+    # Then process individual queries for other suspicious patterns
     for rule in rules:
         if rule.type == 'at-rule' and rule.lower_at_keyword == 'container':
-            techniques = _is_fingerprinting_pattern(rule, style, props)
             query = tinycss2.serialize(rule.prelude).strip() if rule.prelude else ''
-            for technique in techniques:
-                results.append(f"@container {query} [{technique}]")
-
+            container_name = _extract_container_name(query)
+            
+            # Skip queries that were already marked as suspicious due to multiple dimensions
+            query_key = f"{query}|dimension-fingerprinting"
+            if query_key in seen_queries:
+                continue
+                    
+            width_pattern = re.search(r'(?:width|max-width|min-width)\s*(?::|\s*[><]=?|\s*=)\s*([-+]?\d*\.?\d+)(?:px|em|rem|ch|vw|vh|%)?', query.lower())
+            
+            if width_pattern:
+                value = float(width_pattern.group(1))
+                
+                # Check for suspicious patterns:
+                is_suspicious = False
+                
+                # Very specific decimal values
+                if '.' in str(value):
+                    is_suspicious = True
+                    
+                # Very small values
+                if value < 10:
+                    is_suspicious = True
+                
+                # Font-related terms in CSS
+                font_terms = ['font-family', 'gill', 'arial', 'times', 'courier']
+                if any(term in css_text.lower() for term in font_terms):
+                    query_key = f"{query}|font-fingerprinting"
+                    if query_key not in seen_queries:
+                        results.append(f"@container {query} [font-fingerprinting]")
+                        seen_queries.add(query_key)
+                
+                # Check individual query for suspicious patterns
+                if is_suspicious:
+                    query_key = f"{query}|dimension-fingerprinting"
+                    if query_key not in seen_queries:
+                        results.append(f"@container {query} [dimension-fingerprinting]")
+                        seen_queries.add(query_key)
+    
     return results

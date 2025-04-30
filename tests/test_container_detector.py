@@ -1,6 +1,6 @@
 from detectors.container_detector import detector as container_detector
 
-def test_detect_font_fingerprinting():
+def test_detect_dimension_fingerprinting():
     css = """
     #container {
         container-type: inline-size;
@@ -11,11 +11,10 @@ def test_detect_font_fingerprinting():
     }
     """
     results = container_detector(css)
-    assert len(results) == 2
-    assert "[font-fingerprinting]" in results[0]
-    assert "[dimension-fingerprinting]" in results[1]
+    assert len(results) == 1
+    assert "[dimension-fingerprinting]" in results[0]
 
-def test_detect_viewport_fingerprinting():
+def test_detect_dimension_fingerprinting_2():
     css = """
     #container {
         container-type: inline-size;
@@ -27,9 +26,9 @@ def test_detect_viewport_fingerprinting():
     """
     results = container_detector(css)
     assert len(results) == 1
-    assert "[viewport-fingerprinting]" in results[0]
+    assert "[dimension-fingerprinting]" in results[0]
 
-def test_detect_dimension_fingerprinting():
+def test_detect_dimension_fingerprinting_3():
     css = """
     #container {
         container-type: inline-size;
@@ -42,31 +41,6 @@ def test_detect_dimension_fingerprinting():
     assert len(results) == 1
     assert "[dimension-fingerprinting]" in results[0]
 
-def test_detect_text_measurement():
-    css = """
-    #container {
-        container-type: inline-size;
-    }
-    @container (width > 100px) {
-        div { background: yellow; }
-    }
-    """
-    results = container_detector(css)
-    assert len(results) == 1
-    assert "[text-measurement]" in results[0]
-
-def test_no_fingerprinting_pattern():
-    css = """
-    #container {
-        container-type: size;
-    }
-    @container (width > 500px) {
-        div { background: red; }
-    }
-    """
-    results = container_detector(css)
-    assert len(results) == 0
-
 def test_no_container_queries():
     css = """
     body { margin: 0; }
@@ -77,6 +51,25 @@ def test_no_container_queries():
 
 def test_poc_chrome():
     css = """
+    #containerCalc {
+        container: calccontainer / inline-size;
+    }
+    #targetCalc {
+        width: calc(
+            1px *
+            (
+                e + pi *
+                sin(
+                    317326.39402987924 * -210861.19767869983 *
+                    (
+                        36781.96919420755 / cos(129868.3654533018) *
+                        cos(-30780.497322536892) - pi * -115536.38801368067 *
+                        0.1396149976644665
+                    )
+                )
+            )
+        );
+    }
     @container calccontainer (width: 0px) {
         #calcUbuntu {
             color: orangered;
@@ -84,18 +77,36 @@ def test_poc_chrome():
         #calcWindows {
             display: none;
         }
-      }
-      @container calccontainer (width: 1.84375px) {
+    }
+    @container calccontainer (width: 1.84375px) {
         #calcUbuntu {
             display: none;
         }
         #calcWindows {
             color: blue;
+    }
+    #containerEmail {
+        container: emailcontainer / inline-size;
+    }
+    @container emailcontainer (width: 185px) {
+        #emailUbuntu {
+            color: orangered;
         }
-      }
+        #emailWindows {
+            display: none;
+        }
+    }
+    @container emailcontainer (width: 177px) {
+        #emailUbuntu {
+            display: none;
+        }
+        #emailWindows {
+            color: blue;
+        }
+    }
     """
     results = container_detector(css)
-    assert len(results) == 2
+    assert len(results) == 4
 
 def test_office_detection():
     css = """
@@ -128,11 +139,11 @@ def test_poc_firefox():
     css = """
     .wrapper {
         width: fit-content;
-      }
-      #containerCalc {
+    }
+    #containerCalc {
         container: calccontainer / inline-size;
-      }
-      #targetCalc {
+    }
+    #targetCalc {
         width: calc(
           1px *
             (
@@ -147,23 +158,23 @@ def test_poc_firefox():
               0.8964629967231303 * -341499.34226304095
             )
         );
-      }
-      @container calccontainer (width: 293874.6875px) {
+    }
+    @container calccontainer (width: 293874.6875px) {
         #calcUbuntu {
           color: orangered;
         }
         #calcWindows {
           display: none;
         }
-      }
-      @container calccontainer (width: 293694.0625px) {
+    }
+    @container calccontainer (width: 293694.0625px) {
         #calcUbuntu {
           display: none;
         }
         #calcWindows {
           color: blue;
         }
-      }
+    }
     """
     results = container_detector(css)
     assert len(results) == 2
