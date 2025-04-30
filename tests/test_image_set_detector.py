@@ -78,14 +78,11 @@ def test_no_image_sets():
 
 def test_image_set_poc():
     css = """
-    /* Leak device pixels per CSS pixel */
-    background-image: -webkit-image-set(url("/leak/1") 1x, url("/leak/2") 2x, url("/leak/3") 3x);
-
-    /* Leak support for image formats: https://caniuse.com/?search=image%20format */
-    background-image: -webkit-image-set(url("/leak/safari") type("image/heif"), url("/leak/notsafari") type("image/jpeg"));
-
-    /* Leak DPI of screen */
-    background-image: -webkit-image-set(url("/leak/96") 96dpi, url("/leak/252") 252dpi);      }
+    body {
+        background-image: -webkit-image-set(url("/leak/1") 1x, url("/leak/2") 2x, url("/leak/3") 3x);
+        background-image: -webkit-image-set(url("/leak/safari") type("image/heif"), url("/leak/notsafari") type("image/jpeg"));
+        background-image: -webkit-image-set(url("/leak/96") 96dpi, url("/leak/252") 252dpi);
+    }
     """
     results = image_set_detector(css)
     assert len(results) == 3

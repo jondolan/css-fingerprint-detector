@@ -13,7 +13,7 @@ def detector(css_text):
                 if decl.type == 'declaration' and decl.value:
                     value = tinycss2.serialize(decl.value)
                     # look for image-set() function calls (including -webkit- prefix)
-                    image_set_matches = re.finditer(r'(?:-webkit-)?image-set\(((?:[^()]+|\([^()]*\))*)\)', value)
+                    image_set_matches = re.finditer(r'image-set\(((?:[^()]+|\([^()]*\))*)\)', value)
                     for match in image_set_matches:
                         content = match.group(1).strip()
                         # extract resolution values
