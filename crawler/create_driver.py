@@ -17,6 +17,9 @@ def create_driver(window_size="1920,1080", user_agent=None, browser_type='chrome
         options.add_argument("--disable-gpu")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
+        options.add_argument("--allow-file-access-from-files")
+        options.add_argument("--allow-file-access")
+        options.add_argument("--disable-web-security")
         options.add_argument(f"--window-size={window_size}")
 
         if user_agent:

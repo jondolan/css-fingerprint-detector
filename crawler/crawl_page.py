@@ -17,9 +17,13 @@ def _crawl_with_browser(url, window_size=None, user_agent=None, browser_type='ch
         driver.get(url)
 
         # Wait up to 10 seconds for stylesheets or style tags
-        WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.TAG_NAME, "link"))
-        )
+        try:
+            WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.TAG_NAME, "link"))
+            )
+        except:
+            # Page might only have <style> tags, which is fine
+            pass
 
         # 1. Inline <style> blocks
         styles = driver.find_elements(By.TAG_NAME, 'style')

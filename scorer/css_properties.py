@@ -1,2 +1,0 @@
-def scorer(css):
-    return

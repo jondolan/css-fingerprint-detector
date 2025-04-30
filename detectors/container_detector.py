@@ -33,6 +33,7 @@ def _get_base_selector(selector):
 
 def _is_fingerprinting_pattern(container_rule, container_style, container_props):
     # analyze if a container query is being used for fingerprinting
+    techniques = []
     
     # get the container query condition
     query = tinycss2.serialize(container_rule.prelude).strip() if container_rule.prelude else ''
@@ -41,30 +42,36 @@ def _is_fingerprinting_pattern(container_rule, container_style, container_props)
     container_type = container_props.get('container-type', '').strip('"\'').lower()
     width = container_props.get('width', '').lower()
     
-    # check for font-relative units in container properties
+    # check for font-relative units in container properties or query
     font_units = ['ch', 'ex', 'cap', 'ic']
-    if any(unit in width for unit in font_units):
-        return True, "font-fingerprinting"
+    has_font_units = any(unit in width for unit in font_units) or any(unit in query for unit in font_units)
+    if has_font_units:
+        techniques.append("font-fingerprinting")
         
-    # check for viewport-relative units in container properties
+    # check for viewport-relative units in container properties or query
     viewport_units = ['vw', 'vh', 'vmin', 'vmax']
-    if any(unit in width for unit in viewport_units):
-        return True, "viewport-fingerprinting"
+    has_viewport_units = any(unit in width for unit in viewport_units) or any(unit in query for unit in viewport_units)
+    if has_viewport_units:
+        techniques.append("viewport-fingerprinting")
         
     # check for element dimension measurements with precise values
-    if 'width' in query.lower() or 'height' in query.lower():
+    dimension_keywords = ['width', 'height', 'max-width', 'min-width', 'max-height', 'min-height']
+    if any(x in query.lower() for x in dimension_keywords):
         # look for precise measurements that might target specific browsers/OS
         numbers = re.findall(r'[-+]?\d*\.?\d+', query)
         for num in numbers:
-            if '.' in num and not any(unit in width for unit in font_units + viewport_units):
-                # only mark as dimension fingerprinting if not caught by other patterns
-                return True, "dimension-fingerprinting"
+            if '.' in num or float(num) < 10:
+                # Add dimension fingerprinting if we have font units (dual technique)
+                # or if we're not using any other unit types
+                if has_font_units or (not has_viewport_units and not has_font_units):
+                    techniques.append("dimension-fingerprinting")
+                break
     
     # check for text measurement via inline-size
-    if container_type == 'inline-size':
-        return True, "text-measurement"
+    if container_type == 'inline-size' and not any(techniques):
+        techniques.append("text-measurement")
                 
-    return False, None
+    return techniques
 
 def _find_matching_container(container_styles, container_props):
     # find the first container style and its properties
@@ -88,9 +95,9 @@ def detector(css_text):
     # analyze container queries
     for rule in rules:
         if rule.type == 'at-rule' and rule.lower_at_keyword == 'container':
-            is_fingerprinting, technique = _is_fingerprinting_pattern(rule, style, props)
-            if is_fingerprinting:
-                query = tinycss2.serialize(rule.prelude).strip() if rule.prelude else ''
+            techniques = _is_fingerprinting_pattern(rule, style, props)
+            query = tinycss2.serialize(rule.prelude).strip() if rule.prelude else ''
+            for technique in techniques:
                 results.append(f"@container {query} [{technique}]")
 
     return results

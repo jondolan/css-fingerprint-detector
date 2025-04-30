@@ -10,14 +10,11 @@ pip3 install -r requirements.txt
 # Scan a list of web URLs
 python3 main.py --log-level WARN --results-dir ./results_top5 example/top5.txt
 
-# Scan a list of local HTML files (NOTE: HTML sources not provided)
-python3 main.py --log-level WARN --results-dir ./results_local example/newsletters.txt
+# Scan a list of local HTML files
+python3 main.py --log-level WARN --results-dir ./results_cascading_spy_sheets example/cascading_spy_sheets.txt
 ```
 
-The tool supports both web URLs (http://, https://) and local HTML files (file://). When scanning local files:
-- Use file:///absolute/path/to/file.html format
-- Relative paths in <link> tags are resolved relative to the HTML file's location
-- Both inline styles and external .css files are analyzed
+The tool supports both web URLs (http://, https://) and local HTML files (list of file names relative to the root of this project.)
 
 ## Tests
 
@@ -25,6 +22,15 @@ A comprehensive test suite has been built to validate each detector can successf
 
 ```python
 python3 -m pytest
+```
+
+## Analysis
+
+The tool includes basic tools for analyzing the results.
+
+```python
+python3 results/analyze_calc.py results/results_top5.json
+python3 results/analyze_dynamic.py results/results_top5.json
 ```
 
 ## Discussion
