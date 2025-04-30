@@ -29,8 +29,8 @@ python3 -m pytest
 The tool includes basic tools for analyzing the results.
 
 ```python
-python3 results/analyze_calc.py results/results_top5.json
-python3 results/analyze_dynamic.py results/results_top5.json
+python3 results/analyze_calc.py results_top5/results_top5.json
+python3 results/analyze_dynamic.py results_top5/results_top5.json
 ```
 
 ## Discussion

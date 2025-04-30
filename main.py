@@ -31,7 +31,7 @@ def main(urls, results_dir):
         else:
             # For http(s):// URLs, remove protocol and convert slashes
             safe_url = url.replace('https://', '').replace('http://', '').replace('/', '_')
-        
+
         # process Chrome results
         logging.info(f"Processing Chrome results for {url}")
         chrome_css = css_sources['chrome']
@@ -60,27 +60,31 @@ def main(urls, results_dir):
             logging.error(f"Failed to analyze CSS loading with Firefox for {url}: {str(e)}")
             firefox_loading_analysis = None
 
-        # collect Chrome results
+        # prepare Chrome results
         chrome_result = {
-            "url": url,
             "css_at_rules_score": chrome_at_rule_score,
             "css_function_score": chrome_function_score,
             "loading_analysis": chrome_loading_analysis,
             "loading_dag_file": os.path.basename(chrome_dag_path) if chrome_loading_analysis else None,
             "css_sources_count": len(chrome_css)
         }
-        results.append(chrome_result)
 
-        # collect Firefox results
+        # prepare Firefox results
         firefox_result = {
-            "url": url,
             "css_at_rules_score": firefox_at_rule_score,
             "css_function_score": firefox_function_score,
             "loading_analysis": firefox_loading_analysis,
             "loading_dag_file": os.path.basename(firefox_dag_path) if firefox_loading_analysis else None,
             "css_sources_count": len(firefox_css)
         }
-        results.append(firefox_result)
+        
+        # combine results into a single entry per URL
+        combined_result = {
+            "url": url,
+            "chrome": chrome_result,
+            "firefox": firefox_result
+        }
+        results.append(combined_result)
 
         logging.info(f"Analysis complete for {url}, results saved")
 
